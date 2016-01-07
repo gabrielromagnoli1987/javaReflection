@@ -1,8 +1,10 @@
 package testeador;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
@@ -24,8 +26,9 @@ public class Testeador {
 		
 		List<Notificacion> notificaciones = MockGenerator.createMockInstances(Notificacion.class, 50);
 		
-		// hardcodeada del paciente y el contexto sin reflection 
-		// (para respetar el formato de entrada de datos que necesita el metodo create de la clase NotificacionDAO)
+		// hardcodeada del paciente y el contexto sin aplicar reflection 
+		// (para respetar el formato de entrada de datos que necesita el metodo create de la clase NotificacionDAO y no 
+		// complicarme mas la existencia)
 		Paciente paciente = new Paciente("nombre", "apellido", 88888888);
 		paciente.setId(1);
 		Contexto contexto = new Contexto("cxt", "desc");
@@ -50,18 +53,28 @@ public class Testeador {
 			connection.setRequestMethod("POST");
 			connection.setRequestProperty("Content-Type", "application/json");
 			connection.setDoOutput(true);
-						
-			OutputStreamWriter sw = new OutputStreamWriter(connection.getOutputStream());
-			sw.write(json);
-			sw.close();
 			
-//			OutputStream os = connection.getOutputStream();
-//			os.write(json.getBytes("UTF-8"));			
-//			os.close();
+			// inicio codigo del chino - http://www.mkyong.com/webservices/jax-rs/restfull-java-client-with-java-net-url/
 			
-//			DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
-//			wr.writeBytes(json);
-//			wr.close();
+			OutputStream os = connection.getOutputStream();
+			os.write(json.getBytes("UTF-8"));
+			os.flush();
+			
+			if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+				throw new RuntimeException("Failed : HTTP error code : " + connection.getResponseCode());
+			}
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader((connection.getInputStream())));
+			
+			String output;
+			System.out.println("Output from Server .... \n");
+			while ((output = br.readLine()) != null) {
+				System.out.println(output);
+			}
+
+			connection.disconnect();
+			
+			// fin del codigo choreado del chino - si no entraste nunca en la pagina del chino no tuviste infancia
 			
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
